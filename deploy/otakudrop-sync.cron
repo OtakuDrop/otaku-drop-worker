@@ -1,0 +1,6 @@
+# Install on the external worker host with: crontab deploy/otakudrop-sync.cron
+# Ensure /srv/otakudrop-sync-worker/.env is loaded by the shell or process manager.
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+
+0 */2 * * * cd /srv/otakudrop-sync-worker && . .venv/bin/activate && set -a && . .env && set +a && RUN_ONCE=true python -m otakudrop_sync.runner >> /var/log/otakudrop-sync.log 2>&1
