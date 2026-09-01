@@ -29,15 +29,19 @@ def sync_once(env: Mapping[str, str] | None = None) -> int:
         settings.get("SUPABASE_TABLE", "merchandise_drops"),
     )
     total = 0
+    successful_sources = 0
+    failures: list[str] = []
     try:
         for index, adapter in enumerate(adapters):
             try:
                 drops = adapter.fetch_active()
                 inserted_or_updated = store.upsert_drops(drops)
                 total += inserted_or_updated
+                successful_sources += 1
                 LOGGER.info("%s: normalized %d active drops and upserted %d", adapter.name, len(drops), inserted_or_updated)
-            except Exception:
-                LOGGER.exception("%s sync failed; continuing with remaining sources", adapter.name)
+            except Exception as exc:
+                failures.append(adapter.name)
+                LOGGER.exception("%s sync failed; continuing with remaining sources: %s", adapter.name, exc)
             if index < len(adapters) - 1:
                 delay = random.uniform(
                     float(settings.get("SOURCE_DELAY_MIN_SECONDS", "2")),
@@ -46,6 +50,11 @@ def sync_once(env: Mapping[str, str] | None = None) -> int:
                 time.sleep(delay)
     finally:
         store.close()
+
+    if failures and successful_sources == 0:
+        raise RuntimeError(f"All enabled source adapters failed: {', '.join(failures)}")
+    if failures:
+        LOGGER.warning("Partial sync: %d source(s) failed: %s", len(failures), ", ".join(failures))
     return total
 
 
