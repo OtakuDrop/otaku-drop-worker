@@ -44,8 +44,8 @@ def sync_once(env: Mapping[str, str] | None = None) -> int:
                 LOGGER.exception("%s sync failed; continuing with remaining sources: %s", adapter.name, exc)
             if index < len(adapters) - 1:
                 delay = random.uniform(
-                    float(settings.get("SOURCE_DELAY_MIN_SECONDS", "2")),
-                    float(settings.get("SOURCE_DELAY_MAX_SECONDS", "5")),
+                    float(settings.get("SOURCE_DELAY_MIN_SECONDS", "30")),
+                    float(settings.get("SOURCE_DELAY_MAX_SECONDS", "90")),
                 )
                 time.sleep(delay)
     finally:

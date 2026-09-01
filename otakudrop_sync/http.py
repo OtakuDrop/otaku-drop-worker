@@ -100,12 +100,12 @@ def _request_with_retries(url: str, *, headers: Mapping[str, str], params: Mappi
     raise FetchError(f"Unable to fetch {url}")
 
 
-def get_text(url: str, *, headers: Mapping[str, str] | None = None, params: Mapping[str, Any] | None = None, timeout_seconds: float = 20.0, max_attempts: int = 3, delay_min_seconds: float = 1.0, delay_max_seconds: float = 3.0, max_retry_delay_seconds: float = 30.0, session: Any | None = None) -> str:
+def get_text(url: str, *, headers: Mapping[str, str] | None = None, params: Mapping[str, Any] | None = None, timeout_seconds: float = 20.0, max_attempts: int = 3, delay_min_seconds: float = 5.0, delay_max_seconds: float = 15.0, max_retry_delay_seconds: float = 120.0, session: Any | None = None) -> str:
     response = _request_with_retries(url, headers=_headers(headers, json_only=False), params=params, timeout_seconds=timeout_seconds, max_attempts=max_attempts, delay_min_seconds=delay_min_seconds, delay_max_seconds=delay_max_seconds, max_retry_delay_seconds=max_retry_delay_seconds, session=session)
     return response.text
 
 
-def get_json(url: str, *, headers: Mapping[str, str] | None = None, params: Mapping[str, Any] | None = None, timeout_seconds: float = 20.0, max_attempts: int = 3, delay_min_seconds: float = 1.0, delay_max_seconds: float = 3.0, max_retry_delay_seconds: float = 30.0, session: Any | None = None) -> Any:
+def get_json(url: str, *, headers: Mapping[str, str] | None = None, params: Mapping[str, Any] | None = None, timeout_seconds: float = 20.0, max_attempts: int = 3, delay_min_seconds: float = 5.0, delay_max_seconds: float = 15.0, max_retry_delay_seconds: float = 120.0, session: Any | None = None) -> Any:
     """Fetch JSON with standard negotiation and bounded retries, never challenge bypass."""
     response = _request_with_retries(url, headers=_headers(headers, json_only=True), params=params, timeout_seconds=timeout_seconds, max_attempts=max_attempts, delay_min_seconds=delay_min_seconds, delay_max_seconds=delay_max_seconds, max_retry_delay_seconds=max_retry_delay_seconds, session=session)
     try:
