@@ -20,7 +20,7 @@ class FakeSession:
 
 
 class SupabaseStoreTests(unittest.TestCase):
-    def test_upsert_uses_normalized_payload(self):
+    def test_upsert_uses_deployed_table_payload(self):
         session = FakeSession()
         store = SupabaseStore("https://demo.supabase.co", "server-only-key", session=session)
         drop = MerchandiseDrop(
@@ -36,9 +36,13 @@ class SupabaseStoreTests(unittest.TestCase):
             fetched_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
         )
         self.assertEqual(store.upsert_drops([drop]), 1)
-        _, kwargs = session.calls[0]
-        self.assertEqual(kwargs["json"][0]["source_id"], "A-1")
-        self.assertEqual(kwargs["json"][0]["raw_payload"], {"id": "A-1"})
+        args, kwargs = session.calls[0]
+        payload = kwargs["json"][0]
+        self.assertEqual(payload["title"], "Figure")
+        self.assertEqual(payload["retailer"], "AmiAmi")
+        self.assertEqual(payload["price"], 5000)
+        self.assertEqual(payload["created_at"], "2026-01-01T00:00:00+00:00")
+        self.assertIn("on_conflict=id", args[0])
         self.assertIn("resolution=merge-duplicates", kwargs["headers"]["Prefer"])
 
 

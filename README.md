@@ -46,7 +46,7 @@ Alternatively, run a single long-lived process with `RUN_ONCE=false` and `SYNC_I
 
 Each normalized row is keyed by `(source, source_id)`, so repeating a cycle updates the existing record instead of creating duplicates. Records whose status or quantity indicates `sold out`, `out of stock`, `closed`, `ended`, `unavailable`, `完売`, `売り切れ`, or `在庫なし` are excluded. Records without a stable source ID or title are skipped and logged.
 
-The table stores normalized fields (`title`, `price_jpy`, `release_date`, `image_url`, `product_url`, `status`, and `fetched_at`) plus the original source object in `raw_payload` for troubleshooting. Inventory can change between synchronization and checkout, so the frontend should show the last-synced timestamp and link back to the retailer.
+The deployed table stores normalized fields (`title`, `retailer`, `price`, `release_date`, `image_url`, `url`, and `created_at`). The worker derives a stable integer `id` from each retailer/source-item pair and refreshes `created_at` on each upsert, allowing the frontend to show the latest sync timestamp. Inventory can change between synchronization and checkout, so the frontend should show that timestamp and link back to the retailer.
 
 ## Tests
 
@@ -80,7 +80,7 @@ The workflow at [`.github/workflows/otakudrop-sync.yml`](./.github/workflows/ota
 
 Add the source endpoints, enable flags, and query values as **Actions variables**, not secrets, unless a source separately requires authentication. Set `AMIAMI_ENABLED`, `MANDARAKE_ENABLED`, or `SURUGAYA_ENABLED` to `true` only after confirming the endpoint and access terms. The workflow does not use rotating proxies, browser-fingerprint spoofing, Cloudflare bypasses, or hidden JSON endpoints.
 
-The GitHub-hosted runner only executes the adapter and database code; it does not make a source feed authorized. If an endpoint returns 401, 403, 429, a challenge page, or an undocumented response, the worker logs the failure and continues with the remaining sources.
+The GitHub-hosted runner only executes the adapter and database code; it does not make a source feed authorized. If an endpoint returns 401, 403, 429, a challenge page, or an undocumented response, the worker logs the failure and continues with the remaining sources. If every enabled source fails, the run exits nonzero so the scheduled workflow is visibly unsuccessful rather than silently passing.
 
 ## Verified source references
 
