@@ -7,6 +7,7 @@ import time
 from typing import Mapping
 
 from .adapters import configured_adapters
+from .apify import ApifyTaskClient
 from .supabase import SupabaseStore
 
 LOGGER = logging.getLogger("otakudrop_sync")
@@ -18,9 +19,9 @@ def env_config() -> dict[str, str]:
 
 def sync_once(env: Mapping[str, str] | None = None) -> int:
     settings = env or env_config()
-    adapters = configured_adapters(settings)
-    if not adapters:
-        LOGGER.warning("No authorized source endpoints are configured; nothing to sync")
+    use_apify = settings.get("APIFY_TASK_ID", "").strip() and settings.get("APIFY_API_TOKEN", "").strip()
+    if not use_apify and not configured_adapters(settings):
+        LOGGER.warning("No authorized Apify Task or source endpoints are configured; nothing to sync")
         return 0
 
     store = SupabaseStore(
@@ -32,6 +33,18 @@ def sync_once(env: Mapping[str, str] | None = None) -> int:
     successful_sources = 0
     failures: list[str] = []
     try:
+        if use_apify:
+            client = ApifyTaskClient(settings["APIFY_API_TOKEN"])
+            try:
+                drops = client.latest_successful_items(settings["APIFY_TASK_ID"])
+                total = store.upsert_drops(drops)
+                successful_sources = 1
+                LOGGER.info("Apify Task %s: normalized %d active drops and upserted %d", settings["APIFY_TASK_ID"], len(drops), total)
+            finally:
+                client.close()
+            return total
+
+        adapters = configured_adapters(settings)
         for index, adapter in enumerate(adapters):
             try:
                 drops = adapter.fetch_active()

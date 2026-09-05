@@ -1,19 +1,29 @@
-name: OtakuDrop worker validation
+name: OtakuDrop Apify inventory sync
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    - cron: "0 */2 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  sync:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+      APIFY_TASK_ID: ${{ vars.APIFY_TASK_ID }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_TABLE: merchandise_drops
+      RUN_ONCE: "true"
+      AMIAMI_ENABLED: "false"
+      MANDARAKE_ENABLED: "false"
+      SURUGAYA_ENABLED: "false"
+      LOG_LEVEL: INFO
+
     steps:
       - name: Check out worker
         uses: actions/checkout@v4
@@ -27,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
+      - name: Run Apify Task polling sync
+        run: python -m otakudrop_sync.runner
+
       - name: Run offline tests
         run: python -m unittest discover -s tests -v
-
-      - name: Compile worker
-        run: python -m compileall -q otakudrop_sync
